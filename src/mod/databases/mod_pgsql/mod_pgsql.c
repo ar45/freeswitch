@@ -603,6 +603,7 @@ error:
 
 switch_status_t pgsql_next_result_timed(switch_pgsql_handle_t *handle, switch_pgsql_result_t **result_out, int msec)
 {
+	char *affected_rows = NULL;
 	switch_pgsql_result_t *res;
 	switch_time_t start;
 	switch_time_t ctime;
@@ -715,6 +716,11 @@ switch_status_t pgsql_next_result_timed(switch_pgsql_handle_t *handle, switch_pg
 
 	res->result = PQgetResult(handle->con);
 	if (res->result) {
+		affected_rows = PQcmdTuples(res->result);
+		if (!zstr(affected_rows)) {
+			handle->affected_rows = atoi(affected_rows);
+		}
+
 		*result_out = res;
 		res->status = PQresultStatus(res->result);
 		switch (res->status) {
@@ -725,7 +731,6 @@ switch_status_t pgsql_next_result_timed(switch_pgsql_handle_t *handle, switch_pg
 		case PGRES_TUPLES_OK:
 		{
 			res->rows = PQntuples(res->result);
-			handle->affected_rows = res->rows;
 			res->cols = PQnfields(res->result);
 		}
 		break;
