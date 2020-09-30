@@ -273,7 +273,8 @@ static void parse_domain(const char *url, char *domain_buf, int domain_buf_len)
 	if (!*start) {
 		return;
 	}
-	strncpy(domain_buf, start, domain_buf_len);
+	strncpy(domain_buf, start, domain_buf_len - 1);
+	domain_buf[domain_buf_len - 1] = '\0';
 	end = strchr(domain_buf, '/');
 	if (end) {
 		*end = '\0';
@@ -986,6 +987,7 @@ static char *cached_url_filename_create(url_cache_t *cache, const char *url, cha
 	switch_uuid_get(&uuid);
 	switch_uuid_format(uuid_str, &uuid);
 	strncpy(uuid_dir, uuid_str, 2);
+	uuid_dir[2] = '\0';
 	dirname = switch_mprintf("%s%s%s", cache->location, SWITCH_PATH_SEPARATOR, uuid_dir);
 
 	/* create sub-directory if it doesn't exist */
