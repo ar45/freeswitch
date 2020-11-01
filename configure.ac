@@ -759,7 +759,6 @@ case "$host" in
            APR_ADDTO(CFLAGS, -Wno-deprecated-declarations)
         fi
         if test "$osxrel" -ge 6; then             # 10.6 and up
-           APR_ADDTO(CFLAGS, -pipe -no-cpp-precomp)
            APR_ADDTO(LDFLAGS, -pipe -bind_at_load)
            APR_ADDTO(CXXFLAGS, -pipe)
         fi
