@@ -3562,13 +3562,21 @@ static switch_status_t cmd_profile(char **argv, int argc, switch_stream_handle_t
 			sofia_glue_del_every_gateway(profile);
 			stream->write_function(stream, "+OK every gateway marked for deletion.\n");
 		} else {
-			if ((gateway_ptr = sofia_reg_find_gateway(argv[2]))) {
+			char *pkey = NULL;
+			char *key = argv[2];
+			if (!strstr(key, "::")) {
+				pkey = switch_mprintf("%s::%s", profile->name, argv[2]);
+			}
+
+			if ((gateway_ptr = sofia_reg_find_gateway(pkey))) {
 				sofia_glue_del_gateway(gateway_ptr);
 				sofia_reg_release_gateway(gateway_ptr);
 				stream->write_function(stream, "+OK gateway marked for deletion.\n");
 			} else {
 				stream->write_function(stream, "-ERR no such gateway.\n");
 			}
+
+			switch_safe_free(pkey);
 		}
 
 		goto done;

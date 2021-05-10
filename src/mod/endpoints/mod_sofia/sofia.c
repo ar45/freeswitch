@@ -4216,7 +4216,9 @@ static void parse_gateways(sofia_profile_t *profile, switch_xml_t gateways_tag, 
 				parse_gateway_subscriptions(profile, gateway, gw_subs_tag);
 			}
 
-			sofia_reg_add_gateway(profile, gateway->name, gateway);
+			if (sofia_reg_add_gateway(profile, gateway->name, gateway) != SWITCH_STATUS_SUCCESS) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Skipped gateway '%s' on profile '%s'\n", gateway->name, profile->name);
+			}
 
 		}
 

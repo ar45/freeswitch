@@ -314,13 +314,15 @@ void sofia_reg_check_gateway(sofia_profile_t *profile, time_t now)
 	switch_mutex_lock(profile->gw_mutex);
 	for (gateway_ptr = profile->gateways; gateway_ptr; gateway_ptr = gateway_ptr->next) {
 		if (gateway_ptr->deleted) {
+			char *pkey = switch_mprintf("%s::%s", profile->name, gateway_ptr->name);
+			switch_assert(pkey);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removing gateway on profile %s from hash %s.\n", profile->name, pkey);
+			switch_core_hash_delete(mod_sofia_globals.gateway_hash, pkey);
+			free(pkey);
+
 			if ((check = switch_core_hash_find(mod_sofia_globals.gateway_hash, gateway_ptr->name)) && check == gateway_ptr) {
-				char *pkey = switch_mprintf("%s::%s", profile->name, gateway_ptr->name);
-				switch_assert(pkey);
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removing gateway %s from hash.\n", pkey);
-				switch_core_hash_delete(mod_sofia_globals.gateway_hash, pkey);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removing gateway on profile %s from hash %s.\n", profile->name, gateway_ptr->name);
 				switch_core_hash_delete(mod_sofia_globals.gateway_hash, gateway_ptr->name);
-				free(pkey);
 			}
 
 			if (gateway_ptr->state == REG_STATE_NOREG || gateway_ptr->state == REG_STATE_DOWN) {
@@ -3524,41 +3526,58 @@ switch_status_t sofia_reg_add_gateway(sofia_profile_t *profile, const char *key,
 {
 	switch_status_t status = SWITCH_STATUS_FALSE;
 	char *pkey = switch_mprintf("%s::%s", profile->name, key);
-	sofia_gateway_t *gp;
-
-	switch_mutex_lock(profile->gw_mutex);
-
-	gateway->next = profile->gateways;
-	profile->gateways = gateway;
-
-	switch_mutex_unlock(profile->gw_mutex);
+	sofia_gateway_t *unqualified_gw;
+	sofia_gateway_t *qualified_gw;
 
 	switch_mutex_lock(mod_sofia_globals.hash_mutex);
 
-	if ((gp = switch_core_hash_find(mod_sofia_globals.gateway_hash, key))) {
-		if (gp->deleted) {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removing deleted gateway from hash.\n");
-			switch_core_hash_delete(mod_sofia_globals.gateway_hash, gp->name);
-			switch_core_hash_delete(mod_sofia_globals.gateway_hash, pkey);
+	if ((unqualified_gw = switch_core_hash_find(mod_sofia_globals.gateway_hash, key))) {
+		// regardless of the profile this belongs to, if it has been deleted, we remove it so we can add ours.
+		if (unqualified_gw->deleted) {
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removing deleted gateway from hash %s.\n", key);
 			switch_core_hash_delete(mod_sofia_globals.gateway_hash, key);
+			unqualified_gw = NULL;
 		}
 	}
 
-	if (!switch_core_hash_find(mod_sofia_globals.gateway_hash, key) && !switch_core_hash_find(mod_sofia_globals.gateway_hash, pkey)) {
-		status = switch_core_hash_insert(mod_sofia_globals.gateway_hash, key, gateway);
-		status |= switch_core_hash_insert(mod_sofia_globals.gateway_hash, pkey, gateway);
-		if (status != SWITCH_STATUS_SUCCESS) {
-			status = SWITCH_STATUS_FALSE;
+	if ((qualified_gw = switch_core_hash_find(mod_sofia_globals.gateway_hash, pkey))) {
+		if (qualified_gw->profile == profile) {
+			if (qualified_gw->deleted) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Re-adding gateway into hash %s.\n", pkey);
+				status = switch_core_hash_insert(mod_sofia_globals.gateway_hash, pkey, gateway);
+			}
+		} else {
+			qualified_gw = NULL;
 		}
 	} else {
-		status = SWITCH_STATUS_FALSE;
+		status = switch_core_hash_insert(mod_sofia_globals.gateway_hash, pkey, gateway);
+		qualified_gw = gateway;
 	}
+
+	if (status == SWITCH_STATUS_SUCCESS) {
+		switch_mutex_lock(profile->gw_mutex);
+		gateway->next = profile->gateways;
+		profile->gateways = gateway;
+		switch_mutex_unlock(profile->gw_mutex);
+	}
+
+	// insert namespaced version profile::gateway
+	if (qualified_gw) {
+		// insert un-namespaced name if it does not exist
+		if (!unqualified_gw) {
+			status = switch_core_hash_insert(mod_sofia_globals.gateway_hash, key, gateway);
+		} else {
+			status = SWITCH_STATUS_INUSE;
+		}
+	}
+
 	switch_mutex_unlock(mod_sofia_globals.hash_mutex);
 
 	free(pkey);
 
 	if (status == SWITCH_STATUS_SUCCESS) {
 		switch_event_t *s_event;
+
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Added gateway '%s' to profile '%s'\n", gateway->name, gateway->profile->name);
 		if (switch_event_create_subclass(&s_event, SWITCH_EVENT_CUSTOM, MY_EVENT_GATEWAY_ADD) == SWITCH_STATUS_SUCCESS) {
 			switch_event_add_header_string(s_event, SWITCH_STACK_BOTTOM, "Gateway", gateway->name);
