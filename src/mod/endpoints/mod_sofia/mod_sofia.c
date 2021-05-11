@@ -3568,7 +3568,7 @@ static switch_status_t cmd_profile(char **argv, int argc, switch_stream_handle_t
 				pkey = switch_mprintf("%s::%s", profile->name, argv[2]);
 			}
 
-			if ((gateway_ptr = sofia_reg_find_gateway(pkey))) {
+			if ((gateway_ptr = sofia_reg_find_gateway(pkey)) && gateway_ptr->profile == profile) {
 				sofia_glue_del_gateway(gateway_ptr);
 				sofia_reg_release_gateway(gateway_ptr);
 				stream->write_function(stream, "+OK gateway marked for deletion.\n");
