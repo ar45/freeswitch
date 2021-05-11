@@ -2443,14 +2443,13 @@ void sofia_reg_handle_sip_r_register(int status,
 {
 	sofia_gateway_t *gateway = NULL;
 
-
-	if (!sofia_private) {
+	if (!profile || !sofia_private) {
 		nua_handle_destroy(nh);
 		return;
 	}
 
 	if (!zstr(sofia_private->gateway_name)) {
-		gateway = sofia_reg_find_gateway(sofia_private->gateway_name);
+		gateway = sofia_reg_find_profile_gateway(profile, sofia_private->gateway_name);
 	}
 
 	if (gateway) {
