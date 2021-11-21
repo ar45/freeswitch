@@ -860,6 +860,8 @@ void *SWITCH_THREAD_FUNC conference_thread_run(switch_thread_t *thread, void *ob
 
 	conference->end_time = switch_epoch_time_now(NULL);
 
+	conference_db_ended(conference);
+
 	switch_event_create_subclass(&event, SWITCH_EVENT_CUSTOM, CONF_EVENT_MAINT);
 	conference_event_add_data(conference, event);
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Action", "conference-destroy");
@@ -2772,6 +2774,7 @@ conference_obj_t *conference_new(char *name, conference_xml_cfg_t cfg, switch_co
 	const char *force_rate = NULL, *force_interval = NULL, *force_channels = NULL, *presence_id = NULL, *force_canvas_size = NULL;
 	uint32_t force_rate_i = 0, force_interval_i = 0, force_channels_i = 0, video_auto_floor_msec = 0;
 	switch_event_t *event;
++	conference_db_t db = { 0 };
 
 	int scale_h264_canvas_width = 0;
 	int scale_h264_canvas_height = 0;
@@ -3145,6 +3148,16 @@ conference_obj_t *conference_new(char *name, conference_xml_cfg_t cfg, switch_co
 				video_codec_config_profile_name = val;
 			} else if (!strcasecmp(var, "heartbeat-period-sec") && !zstr(val)) {
 				heartbeat_period_sec = atoi(val);
+			} else if (!strcasecmp(var, "odbc-dsn") && !zstr(val)) {
+				db.odbc_dsn = val;
+			} else if (!strcasecmp(var, "conference-create-sql") && !zstr(val)) {
+				db.create_sql = val;
+			} else if (!strcasecmp(var, "conference-end-sql") && !zstr(val)) {
+				db.end_sql = val;
+			} else if (!strcasecmp(var, "conference-join-sql") && !zstr(val)) {
+				db.user_join_sql = val;
+			} else if (!strcasecmp(var, "conference-leave-sql") && !zstr(val)) {
+				db.user_leave_sql = val;
 			}
 		}
 
@@ -3807,6 +3820,8 @@ conference_obj_t *conference_new(char *name, conference_xml_cfg_t cfg, switch_co
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Action", "conference-create");
 	switch_event_fire(&event);
 
+	conference->db = db;
+	conference_db_created(conference, session);
  end:
 	if (conference) {
 		switch_thread_rwlock_rdlock(conference->rwlock);
