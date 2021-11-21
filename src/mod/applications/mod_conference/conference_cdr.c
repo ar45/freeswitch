@@ -492,6 +492,8 @@ void conference_cdr_del(conference_member_t *member)
 		member->cdr_node->leave_time = switch_epoch_time_now(NULL);
 		memcpy(member->cdr_node->mflags, member->flags, sizeof(member->flags));
 		member->cdr_node->member = NULL;
+
+		conference_db_member_left(member);
 	}
 	switch_mutex_unlock(member->conference->member_mutex);
 }
@@ -531,6 +533,8 @@ void conference_cdr_add(conference_member_t *member)
 	member->cdr_node->cp = switch_caller_profile_dup(member->conference->pool, cp);
 
 	member->cdr_node->id = member->id;
+
+	conference_db_member_joined(member);
 
  end:
 

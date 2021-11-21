@@ -592,6 +592,15 @@ typedef enum {
 	CONF_VIDEO_MODE_MUX
 } conference_video_mode_t;
 
+typedef struct conference_db {
+	const char 	*odbc_dsn;
+	const char 	*create_sql;
+	const char 	*end_sql;
+	const char 	*user_join_sql;
+	const char 	*user_leave_sql;
+	switch_mutex_t  *mutex;
+} conference_db_t;
+
 /* Conference Object */
 typedef struct conference_obj {
 	char *name;
@@ -763,6 +772,10 @@ typedef struct conference_obj {
 	int mux_paused;
 	char *video_codec_config_profile_name;
 	int heartbeat_period_sec;
+
+	/* db conference event logging*/
+	conference_db_t db;
+
 } conference_obj_t;
 
 /* Relationship with another member */
@@ -1155,6 +1168,10 @@ uint32_t conference_member_stop_file(conference_member_t *member, file_stop_t st
 conference_obj_t *conference_new(char *name, conference_xml_cfg_t cfg, switch_core_session_t *session, switch_memory_pool_t *pool);
 switch_status_t chat_send(switch_event_t *message_event);
 
+void conference_db_created(conference_obj_t *conference, switch_core_session_t *session);
+void conference_db_ended(conference_obj_t *conference);
+void conference_db_member_joined(conference_member_t *member);
+void conference_db_member_left(conference_member_t *member);
 
 void conference_record_launch_thread(conference_obj_t *conference, char *path, int canvas_id, switch_bool_t autorec);
 
