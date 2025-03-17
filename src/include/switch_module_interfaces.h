@@ -634,6 +634,7 @@ struct switch_database_interface {
 	switch_status_t(*callback_exec_detailed)(const char *file, const char *func, int line,
 		switch_database_interface_handle_t *dih, const char *sql, switch_core_db_callback_func_t callback, void *pdata, char **err);
 	switch_status_t(*affected_rows)(switch_database_interface_handle_t *dih, int *affected_rows);
+	void*(*get_pg_conn)(switch_database_interface_handle_t *dih);
 
 	/*! list of supported dsn prefixes */
 	char **prefixes;

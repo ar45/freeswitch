@@ -1080,6 +1080,19 @@ error:
 	return SWITCH_STATUS_FALSE;
 }
 
+PGconn * get_pg_conn(switch_database_interface_handle_t *dih)
+{
+	switch_pgsql_handle_t *handle;
+
+	if (!dih) {
+		return NULL;
+	}
+
+	handle = dih->handle;
+
+	return handle->con;
+}
+
 SWITCH_MODULE_LOAD_FUNCTION(mod_pgsql_load)
 {
 	switch_database_interface_t *database_interface;
@@ -1106,6 +1119,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_pgsql_load)
 	database_interface->commit = database_commit;
 	database_interface->rollback = database_rollback;
 	database_interface->callback_exec_detailed = pgsql_handle_callback_exec_detailed;
+	database_interface->get_pg_conn = (void *(*)(switch_database_interface_handle_t *))get_pg_conn;
 	
 	/* indicate that the module should continue to be loaded */
 	return SWITCH_STATUS_SUCCESS;

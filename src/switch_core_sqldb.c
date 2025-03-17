@@ -340,6 +340,12 @@ SWITCH_DECLARE(switch_cache_db_handle_type_t) switch_cache_db_get_type(switch_ca
 	return dbh->type;
 }
 
+SWITCH_DECLARE(void *) switch_cache_db_get_native_pg_conn(switch_cache_db_handle_t *dbh)
+{
+	const switch_database_interface_t *database_interface = dbh->native_handle.database_interface_dbh->connection_options.database_interface;
+	return database_interface->get_pg_conn ? database_interface->get_pg_conn(dbh->native_handle.database_interface_dbh) : NULL;
+}
+
 SWITCH_DECLARE(void) switch_cache_db_flush_handles(void)
 {
 	sql_close(switch_epoch_time_now(NULL) + SQL_CACHE_TIMEOUT + 1);

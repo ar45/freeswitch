@@ -2637,6 +2637,8 @@ static inline const char *switch_cache_db_type_name(switch_cache_db_handle_type_
 
 SWITCH_DECLARE(switch_cache_db_handle_type_t) switch_cache_db_get_type(switch_cache_db_handle_t *dbh);
 
+SWITCH_DECLARE(void *) switch_cache_db_get_native_pg_conn(switch_cache_db_handle_t *dbh);
+
 /*!
  \brief Returns the handle to the pool, immediately available for other
  		threads to use.
