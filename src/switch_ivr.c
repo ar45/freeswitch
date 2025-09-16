@@ -4061,19 +4061,27 @@ SWITCH_DECLARE(switch_status_t) switch_ivr_process_fh(switch_core_session_t *ses
 		}
 
 		if (!strncasecmp(cmd, "speed", 5)) {
-			char *p;
+			char *p = strchr(cmd, ':');
+			if (p) {
+				int absolute = 0;
+				int step = 1;  // Default step size
+				p++;  // Move past ':'
 
-			if ((p = strchr(cmd, ':'))) {
-				p++;
-				if (*p == '+' || *p == '-') {
-					int step;
-					if (!(step = atoi(p))) {
+				if (*p == '!') {  // Absolute speed indicated with '!'
+					absolute = 1;
+					p++;
+				} else if (*p != '+' && *p != '-') {  // Implicit absolute speed
+					absolute = 1;
+				}
+
+				if (absolute) {
+					fhp->speed = atoi(p);  // Set speed directly
+				} else {
+					step = atoi(p);  // Determine step size, default is 1
+					if (step == 0) {
 						step = 1;
 					}
-					fhp->speed += step;
-				} else {
-					int speed = atoi(p);
-					fhp->speed = speed;
+					fhp->speed += step;  // Increment speed
 				}
 				return SWITCH_STATUS_SUCCESS;
 			}
