@@ -75,6 +75,7 @@ SWITCH_DECLARE(switch_status_t) switch_core_perform_file_open(const char *file, 
 	int is_stream = 0;
 	char *fp = NULL;
 	int to = 0;
+	int speed = 0;
 	int force_channels = 0;
 	uint32_t core_channel_limit;
 
@@ -149,6 +150,15 @@ SWITCH_DECLARE(switch_status_t) switch_core_perform_file_open(const char *file, 
 		if ((timeout = switch_event_get_header(fh->params, "timeout"))) {
 			if ((to = atoi(timeout)) < 1) {
 				to = 0;
+			}
+		}
+
+		if ((val = switch_event_get_header(fh->params, "speed"))) {
+			if ((tmp = atoi(val))) {
+				if (tmp) {
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Initializing speed for file: %d\n", tmp);
+					speed = tmp;
+				}
 			}
 		}
 
@@ -433,6 +443,9 @@ SWITCH_DECLARE(switch_status_t) switch_core_perform_file_open(const char *file, 
 		fh->max_samples = (fh->samplerate / 1000) * to;
 	}
 
+	if (speed) {
+		fh->speed = speed;
+	}
 
 	if ((flags & SWITCH_FILE_FLAG_READ)) {
 		fh->native_rate = fh->samplerate;
